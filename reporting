@@ -1,0 +1,33 @@
+/* ======>Q1 */
+SELECT articles.title, subq.views
+FROM articles
+LEFT JOIN (
+    SELECT path, count(ip) as views
+    FROM log
+    WHERE status='200 OK'
+    GROUP BY path) as subq
+ON subq.path=CONCAT('/article/',articles.slug)
+ORDER BY subq.views DESC LIMIT 3;
+
+/* ======>Q2 */
+
+SELECT  subq2.name, count(subq2.path) as views
+FROM(
+    SELECT log.path, log.ip, subq1.slug, subq1.title, subq1.name
+    FROM log
+    RIGHT JOIN (
+        SELECT articles.slug, articles.title, authors.name
+        FROM articles JOIN authors ON articles.author=authors.id) as subq1
+    ON log.path=CONCAT('/article/',subq1.slug)) as subq2
+GROUP BY subq2.name ORDER BY views DESC;
+
+
+/* ======>Q3 */
+SELECT subq.day, ROUND((100.0*subq.err/subq.total),2) as error
+FROM(
+  SELECT date_trunc('day', time) as day,
+  count(id) as total,
+  sum(case when status!='200 OK' then 1 else 0 end) as err
+  FROM log
+  GROUP BY day) as subq
+WHERE ROUND((100.0*subq.err/subq.total),2)>1;
